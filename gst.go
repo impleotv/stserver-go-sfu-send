@@ -1,5 +1,5 @@
 // Package gst provides an easy API to create an appsink pipeline
-package gst
+package main
 
 /*
 #cgo pkg-config: gstreamer-1.0 gstreamer-app-1.0
