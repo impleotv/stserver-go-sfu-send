@@ -41,8 +41,8 @@ const (
 )
 
 // CreatePipeline creates a GStreamer Pipeline
-func CreatePipeline(codecName string, bitrate string, tracks []*webrtc.TrackLocalStaticSample, pipelineSrc string) *Pipeline {
-	pipelineStr := "appsink name=appsink"
+func CreatePipeline(codecName string, videoPassthrough bool, bitrate string, tracks []*webrtc.TrackLocalStaticSample, pipelineSrc string) *Pipeline {
+	pipelineStr := "appsink name=appsink sync=false"
 	var clockRate float32
 
 	switch codecName {
@@ -55,7 +55,12 @@ func CreatePipeline(codecName string, bitrate string, tracks []*webrtc.TrackLoca
 		clockRate = videoClockRate
 
 	case "h264":
-		pipelineStr = pipelineSrc + " ! video/x-raw,format=I420 ! x264enc speed-preset=ultrafast tune=zerolatency key-int-max=20 ! video/x-h264,stream-format=byte-stream ! " + pipelineStr
+		if videoPassthrough == true {
+			pipelineStr = pipelineSrc + " ! video/x-h264,stream-format=byte-stream,alignment=au! " + pipelineStr
+		} else {
+			pipelineStr = pipelineSrc + " ! video/x-raw,format=I420 ! x264enc speed-preset=ultrafast tune=zerolatency key-int-max=20 ! video/x-h264,stream-format=byte-stream ! " + pipelineStr
+		}
+
 		clockRate = videoClockRate
 
 	case "opus":
@@ -113,6 +118,13 @@ func goHandlePipelineBuffer(buffer unsafe.Pointer, bufferLen C.int, duration C.i
 	pipelinesLock.Unlock()
 
 	if ok {
+
+		// fmt.Println("send sample " + strconv.Itoa(int(bufferLen)) + "  /  " + strconv.Itoa(int(time.Duration(duration))))
+
+		if duration == -1 {
+			duration = 33333333
+		}
+
 		for _, t := range pipeline.tracks {
 			if err := t.WriteSample(media.Sample{Data: C.GoBytes(buffer, bufferLen), Duration: time.Duration(duration)}); err != nil {
 				panic(err)

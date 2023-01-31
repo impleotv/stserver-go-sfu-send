@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	ilog "github.com/pion/ion-log"
 	sdk "github.com/pion/ion-sdk-go"
@@ -13,12 +14,17 @@ var (
 )
 
 func main() {
+	version := "1.0.3"
+	fmt.Println("Version: " + version)
+
 	// parse flag
 	var session, addr, videoCodecName, videoBitrate string
+	var videoPassthrough bool
 	flag.StringVar(&addr, "addr", "localhost:50051", "Ion-sfu grpc addr")
 	flag.StringVar(&session, "session", "test session", "join session name")
 	flag.StringVar(&videoCodecName, "videoCodecName", "vp8", "WebRTC codec name")
 	flag.StringVar(&videoBitrate, "videoBitrate", "3500000", "WebRTC video bitrate")
+	flag.BoolVar(&videoPassthrough, "videoPassthrough", false, "Video pathtrough.")
 
 	audioSrc := flag.String("audio-src", "", "Audio src")
 	videoSrc := flag.String("video-src", "videotestsrc", "GStreamer video src")
@@ -88,8 +94,8 @@ func main() {
 	}
 
 	// Start pushing buffers on these tracks
-	CreatePipeline("opus", "", []*webrtc.TrackLocalStaticSample{audioTrack}, *audioSrc).Start()
-	CreatePipeline(videoCodecName, videoBitrate, []*webrtc.TrackLocalStaticSample{videoTrack}, *videoSrc).Start()
+	CreatePipeline("opus", videoPassthrough, "", []*webrtc.TrackLocalStaticSample{audioTrack}, *audioSrc).Start()
+	CreatePipeline(videoCodecName, videoPassthrough, videoBitrate, []*webrtc.TrackLocalStaticSample{videoTrack}, *videoSrc).Start()
 
 	select {}
 }
